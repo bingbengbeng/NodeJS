@@ -1,6 +1,7 @@
 const { isEqual } = require("lodash");
 const log = require("./log4js");
 const NODE_ENV = process.env.NODE_ENV.trim();
+const moment = require("moment-timezone");
 
 if (isEqual(NODE_ENV, "DEV")) require("dotenv").config();
 
