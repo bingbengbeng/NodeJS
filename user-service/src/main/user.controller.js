@@ -43,24 +43,7 @@ const createUser = async (req, res) => {
 };
 
 const updateUser = async (req, res) => {
-  await User.findOneAndUpdate(
-    req.query,
-    { $set: req.body },
-    { useFindAndModify: false }
-  )
-    .then(result => {
-      (responseWMessage.responseCode = "00"),
-        (responseWMessage.message = "update");
-      res.status(200).json({
-        ...responseWMessage
-      });
-    })
-    .catch(error => {
-      catchError(error, res, "01", null);
-    });
-};
 
-const deleteUser = async (req, res) => {
   let id = null;
   const { passport } = req.body;
   if (!isNull(req.query.id)) id = req.query.id;
@@ -69,7 +52,6 @@ const deleteUser = async (req, res) => {
 
   try {
     if (isEqual(undefined, passport)) throw "Not allowed";
-    if (isNull(id)) throw "Error !";
   } catch (error) {
     catchError(error, res, "02", null);
   }
@@ -81,7 +63,55 @@ const deleteUser = async (req, res) => {
         const { user } = JSON.parse(decrypt(result.data));
         logout(req, res)
           .then(() => {
-            User.findOneAndRemove({ _id: user._id })
+            await User.findOneAndUpdate(
+              {_id:user._id || id},
+              { $set: req.body },
+              { useFindAndModify: false }
+            )
+              .then(() => {
+                responseWMessage.responseCode = "00";
+                responseWMessage.message = "Success updated!";
+                res.status(200).json({
+                  ...responseWMessage
+                });
+              })
+              .catch(error => {
+                throw "Failed to update!";
+              });
+          })
+          .catch(error => {
+           throw error;
+          });
+      })
+      .catch(error => {
+        throw error;
+      });
+  } catch (error) {
+    catchError(error, res, "02", null);
+  }
+};
+
+const deleteUser = async (req, res) => {
+  let id = null;
+  const { passport } = req.body;
+  if (!isNull(req.query.id)) id = req.query.id;
+  if (!isNull(req.params.id)) id = req.params.id;
+  if (!isNull(req.body.id)) id = req.query.id;
+
+  try {
+    if (isEqual(undefined, passport)) throw "Not allowed";
+  } catch (error) {
+    catchError(error, res, "02", null);
+  }
+
+  try {
+    const idPassport = decrypt(passport);
+    await Passport.findOne({ _id: idPassport })
+      .then(async result => {
+        const { user } = JSON.parse(decrypt(result.data));
+        logout(req, res)
+          .then(() => {
+            User.findOneAndRemove({ _id: user._id ||id })
               .then(() => {
                 responseWMessage.responseCode = "00";
                 responseWMessage.message = "Logout Success";
@@ -94,7 +124,7 @@ const deleteUser = async (req, res) => {
               });
           })
           .catch(error => {
-            catchError(error, res, "02", null);
+            throw error;
           });
       })
       .catch(error => {
